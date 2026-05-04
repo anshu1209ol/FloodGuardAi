@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Flood Alert Dashboard</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { 
+            background-color: #121212; 
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #map { flex-grow: 1; width: 100%; border-top: 2px solid #333; }
+        .dashboard-header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #1e1e1e;
+        }
+        .severity-badge {
+            font-size: 1.5rem;
+            padding: 10px 30px;
+            border-radius: 50px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.5s ease;
+        }
+        .badge-High { background-color: #dc3545; color: white; box-shadow: 0 0 20px rgba(220, 53, 69, 0.6); }
+        .badge-Moderate { background-color: #ffc107; color: black; }
+        .badge-Low { background-color: #198754; color: white; }
+        .badge-Unknown { background-color: #6c757d; color: white; }
+        
+        .pulse-circle {
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.5); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        .data-panel {
+            font-size: 1.2rem;
+        }
+        .probability-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-header">
+    <div>
+        <h2 class="mb-0 text-primary">Live Flood Telemetry</h2>
+        <small class="text-muted">Monitoring Center: Gwalior Region</small>
+    </div>
+    
+    <div class="d-flex align-items-center">
+        <div class="data-panel me-4 text-end">
+            <span class="text-secondary">Current Probability:</span><br>
+            <span class="probability-value" id="prob-display">--%</span>
+        </div>
+        <div class="severity-badge badge-Unknown" id="severity-badge">
+            Awaiting Data
+        </div>
+    </div>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Initialize Map - Center on Gwalior
+    const map = L.map('map').setView([26.2183, 78.1828], 13);
+    
+    // Dark mode map tiles
+    L.tileLayer('https://api.maptiler.com/maps/basic-v2-dark/{z}/{x}/{y}.png?key=7QF0bAWRVrjmZH8PTCcZ', {
+        attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>'
+    }).addTo(map);
+
+    let currentCircle = null;
+
+    async function fetchLatestPrediction() {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/latest');
+            const data = await response.json();
+
+            if (data.status) {
+                // No predictions yet
+                return;
+            }
+
+            // Update UI values
+            document.getElementById('prob-display').innerText = (data.probability * 100).toFixed(1) + '%';
+            document.getElementById('prob-display').style.color = data.alert_color;
+            
+            const badge = document.getElementById('severity-badge');
+            badge.innerText = data.severity;
+            badge.className = `severity-badge badge-${data.severity}`;
+
+            // Map Alert logic
+            if (currentCircle) {
+                map.removeLayer(currentCircle);
+            }
+
+            if (data.trigger_alert) {
+                // Draw Red Pulse on Gwalior Fort (center of risk)
+                currentCircle = L.circleMarker([26.2313, 78.1695], {
+                    radius: 30,
+                    color: '#ff0000',
+                    fillColor: '#ff0000',
+                    fillOpacity: 0.5,
+                    className: 'pulse-circle'
+                }).addTo(map);
+                currentCircle.bindPopup("<b>CRITICAL ALERT</b><br>Extreme Flood Warning!").openPopup();
+            } else if (data.severity === 'Moderate') {
+                currentCircle = L.circle([26.2183, 78.1828], {
+                    radius: 1000,
+                    color: 'orange',
+                    fillColor: 'orange',
+                    fillOpacity: 0.3
+                }).addTo(map);
+            }
+        } catch (error) {
+            console.error("Failed to fetch live data", error);
+        }
+    }
+
+    // Poll the API every 3 seconds
+    setInterval(fetchLatestPrediction, 3000);
+    // Initial fetch
+    fetchLatestPrediction();
+</script>
+
+</body>
+</html>

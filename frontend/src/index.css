@@ -1,0 +1,235 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+@import 'leaflet/dist/leaflet.css';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg-color: #0b1121;
+  --accent: #38bdf8; /* Electric Blue */
+  --accent-hover: #0ea5e9;
+  --glass-bg: rgba(30, 41, 59, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-color);
+  color: #f8fafc;
+  overflow-x: hidden;
+}
+
+.app-wrapper {
+  min-height: 100vh;
+  position: relative;
+}
+
+.bg-video {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100vw; height: 100vh;
+  object-fit: cover;
+  z-index: -3;
+  opacity: 0.8;
+}
+
+.bg-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: -2;
+}
+.bg-overlay::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(11, 17, 33, 0.75); /* Dark overlay over video */
+  z-index: -1;
+}
+
+.canvas-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 0; /* Behind content, above video background */
+  pointer-events: none;
+}
+
+.startup-screen {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: black;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.startup-video {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0.6;
+}
+.startup-overlay {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.9) 100%);
+  z-index: 10000;
+}
+
+.glass-nav {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.active-nav-item {
+  background: rgba(56, 189, 248, 0.1);
+  color: var(--accent) !important;
+  font-weight: 600;
+}
+
+.hover-nav-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white !important;
+}
+
+.text-accent { color: var(--accent) !important; }
+.bg-accent { background-color: var(--accent) !important; }
+.border-accent { border-color: var(--accent) !important; }
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.glow-icon {
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.6));
+}
+
+.glow-red {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.8), inset 0 0 15px rgba(239, 68, 68, 0.4);
+  animation: glow-pulse-red 2s infinite alternate;
+}
+
+@keyframes glow-pulse-red {
+  from { box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); border-color: rgba(239, 68, 68, 0.5); }
+  to { box-shadow: 0 0 30px rgba(239, 68, 68, 1); border-color: rgba(239, 68, 68, 1); }
+}
+
+.pulse-circle-svg path {
+  transform-origin: center;
+  animation: svg-pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes svg-pulse {
+  0% { transform: scale(0.5); opacity: 1; stroke-width: 0; }
+  100% { transform: scale(2.5); opacity: 0; stroke-width: 25px; }
+}
+
+.btn-accent {
+  background: linear-gradient(135deg, var(--accent) 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.btn-accent:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(56, 189, 248, 0.4);
+  color: white;
+}
+
+.range-slider {
+  accent-color: var(--accent);
+}
+
+.leaflet-container {
+  background: #0f172a !important;
+}
+
+/* Fix Leaflet tile rendering */
+.leaflet-tile-pane {
+  will-change: transform;
+}
+.leaflet-tile {
+  will-change: auto;
+}
+.leaflet-zoom-anim .leaflet-zoom-animated {
+  will-change: transform;
+}
+
+/* Autocomplete Dropdown */
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  overflow: hidden;
+  animation: dropdownSlide 0.2s ease-out;
+}
+
+@keyframes dropdownSlide {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.autocomplete-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  cursor: pointer;
+  color: #cbd5e1;
+  font-size: 0.875rem;
+  transition: background 0.15s ease, color 0.15s ease;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-item:hover {
+  background: rgba(56, 189, 248, 0.12);
+  color: #f8fafc;
+}
+
+.autocomplete-item:hover .text-accent {
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.5));
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
+
+.shimmer {
+  background: #1e293b;
+  background-image: linear-gradient(to right, #1e293b 0%, #334155 20%, #1e293b 40%, #1e293b 100%);
+  background-repeat: no-repeat;
+  background-size: 800px 100%; 
+  animation-duration: 1.5s;
+  animation-fill-mode: forwards; 
+  animation-iteration-count: infinite;
+  animation-name: placeholderShimmer;
+  animation-timing-function: linear;
+}
+
+@keyframes placeholderShimmer {
+  0% { background-position: -468px 0; }
+  100% { background-position: 468px 0; } 
+}

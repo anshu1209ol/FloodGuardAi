@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FloodGuard 3D Live Simulation</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #0b1121; font-family: 'Inter', sans-serif; color: white; }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+        #overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none;
+            display: flex; flex-direction: column; justify-content: space-between; padding: 40px; box-sizing: border-box;
+            background: radial-gradient(circle at center, transparent 0%, rgba(11, 17, 33, 0.8) 100%);
+        }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; pointer-events: auto; }
+        .title { font-size: 2.5rem; font-weight: 700; margin: 0; text-shadow: 0 0 20px rgba(56, 189, 248, 0.8); }
+        .subtitle { font-size: 1.2rem; color: #38bdf8; text-transform: uppercase; letter-spacing: 2px; }
+        
+        .controls { pointer-events: auto; display: flex; gap: 20px; background: rgba(15, 23, 42, 0.7); padding: 20px; border-radius: 12px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        button { background: transparent; border: 1px solid #38bdf8; color: #38bdf8; padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: all 0.3s; font-weight: bold; text-transform: uppercase; }
+        button:hover { background: #38bdf8; color: #0b1121; box-shadow: 0 0 15px rgba(56, 189, 248, 0.8); }
+        
+        /* Video elements need to be hidden but present in DOM for Three.js */
+        #videos { display: none; }
+        
+        .hud { position: absolute; right: 40px; top: 40px; text-align: right; pointer-events: auto; }
+        .hud p { margin: 5px 0; color: #94a3b8; font-family: monospace; font-size: 14px; }
+        .hud span { color: #f8fafc; font-weight: bold; }
+        .hud .alert { color: #ef4444; text-shadow: 0 0 10px #ef4444; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+    </style>
+    <!-- Import Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <div id="videos">
+        <video id="video1" src="Video_Generation_Confirmation.mp4" loop muted playsinline crossOrigin="anonymous"></video>
+        <video id="video2" src="Video_Generation_Request_Fulfilled.mp4" loop muted playsinline crossOrigin="anonymous"></video>
+        <video id="video3" src="Video_Generation_for_Website_UI.mp4" loop muted playsinline crossOrigin="anonymous"></video>
+    </div>
+
+    <div id="overlay">
+        <div class="header">
+            <div>
+                <h1 class="title">FloodGuard 3D</h1>
+                <div class="subtitle">Live Immersion Environment</div>
+            </div>
+            <div class="hud">
+                <p>SYS.STATUS: <span>ONLINE</span></p>
+                <p>SIM.FPS: <span id="fps">60</span></p>
+                <p>ENVIRONMENT: <span>WATER_GRID</span></p>
+                <p class="alert">WARNING: ELEVATED FLUID LEVELS</p>
+            </div>
+        </div>
+        <div class="controls">
+            <button id="btn-play">Initialize Feeds</button>
+            <button id="btn-camera">Auto-Rotate View</button>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        // Setup Three.js Scene
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x0b1121, 0.015);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 15, 30);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 + 0.1; // Don't let camera go below water too much
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x404040, 2); // Soft white light
+        scene.add(ambientLight);
+
+        const pointLight = new THREE.PointLight(0x38bdf8, 2, 100);
+        pointLight.position.set(0, 20, 0);
+        scene.add(pointLight);
+        
+        const redLight = new THREE.PointLight(0xef4444, 1, 50);
+        redLight.position.set(20, 10, -20);
+        scene.add(redLight);
+
+        // Grid helper
+        const gridHelper = new THREE.GridHelper(100, 50, 0x38bdf8, 0x1e293b);
+        gridHelper.position.y = -1;
+        scene.add(gridHelper);
+
+        // Texture Loader
+        const textureLoader = new THREE.TextureLoader();
+
+        // High Tech Floor / Water Surface
+        const waterNormalMap = textureLoader.load('water_normal_map.png');
+        waterNormalMap.wrapS = waterNormalMap.wrapT = THREE.RepeatWrapping;
+        waterNormalMap.repeat.set(10, 10);
+
+        const waterGeometry = new THREE.PlaneGeometry(200, 200, 100, 100);
+        const waterMaterial = new THREE.MeshStandardMaterial({
+            color: 0x0ea5e9,
+            transparent: true,
+            opacity: 0.6,
+            roughness: 0.1,
+            metalness: 0.8,
+            normalMap: waterNormalMap,
+            normalScale: new THREE.Vector2(0.5, 0.5)
+        });
+        const waterMesh = new THREE.Mesh(waterGeometry, waterMaterial);
+        waterMesh.rotation.x = -Math.PI / 2;
+        scene.add(waterMesh);
+
+        // Assets
+        const images = [
+            '0ae7ef99-ea24-46a7-823c-efa9c3edba42.jpg',
+            'Gemini_Generated_Image_3f0p3j3f0p3j3f0p (1).png',
+            'a102f60a-d4a6-4769-b80f-9589467c2176.jpg',
+            'a940ec02-e83c-484c-91a1-65ca982c389e.jpg'
+        ];
+
+        const videoElements = [
+            document.getElementById('video1'),
+            document.getElementById('video2'),
+            document.getElementById('video3')
+        ];
+
+        const galleryGroup = new THREE.Group();
+        scene.add(galleryGroup);
+
+        const radius = 20;
+        const totalItems = images.length + videoElements.length;
+        let index = 0;
+
+        // Add Image Panels
+        images.forEach((src) => {
+            const tex = textureLoader.load(src);
+            const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+            const geo = new THREE.PlaneGeometry(12, 8); // Assume 3:2 ratio roughly
+            const mesh = new THREE.Mesh(geo, mat);
+            
+            // Positioning in a circle
+            const angle = (index / totalItems) * Math.PI * 2;
+            mesh.position.x = Math.cos(angle) * radius;
+            mesh.position.z = Math.sin(angle) * radius;
+            mesh.position.y = 8 + Math.sin(index) * 2; // slight height variation
+            mesh.lookAt(0, mesh.position.y, 0); // Face center
+            
+            // Add a glowing border
+            const edgeGeo = new THREE.EdgesGeometry(geo);
+            const edgeMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 2 });
+            const edgeLines = new THREE.LineSegments(edgeGeo, edgeMat);
+            mesh.add(edgeLines);
+
+            galleryGroup.add(mesh);
+            index++;
+        });
+
+        // Add Video Panels
+        videoElements.forEach((vid) => {
+            const tex = new THREE.VideoTexture(vid);
+            tex.minFilter = THREE.LinearFilter;
+            tex.magFilter = THREE.LinearFilter;
+            tex.format = THREE.RGBFormat;
+            
+            const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+            const geo = new THREE.PlaneGeometry(16, 9); // Standard 16:9 ratio
+            const mesh = new THREE.Mesh(geo, mat);
+            
+            const angle = (index / totalItems) * Math.PI * 2;
+            mesh.position.x = Math.cos(angle) * radius;
+            mesh.position.z = Math.sin(angle) * radius;
+            mesh.position.y = 10;
+            mesh.lookAt(0, mesh.position.y, 0);
+
+            // Red glowing border for videos
+            const edgeGeo = new THREE.EdgesGeometry(geo);
+            const edgeMat = new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 2 });
+            const edgeLines = new THREE.LineSegments(edgeGeo, edgeMat);
+            mesh.add(edgeLines);
+
+            galleryGroup.add(mesh);
+            index++;
+        });
+
+        // Floating particles
+        const particleGeo = new THREE.BufferGeometry();
+        const particleCount = 1000;
+        const posArray = new Float32Array(particleCount * 3);
+        for(let i=0; i < particleCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 100;
+        }
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const particleMat = new THREE.PointsMaterial({
+            size: 0.2,
+            color: 0x38bdf8,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending
+        });
+        const particleMesh = new THREE.Points(particleGeo, particleMat);
+        scene.add(particleMesh);
+
+        // Interactions
+        let autoRotate = false;
+        
+        document.getElementById('btn-play').addEventListener('click', () => {
+            videoElements.forEach(vid => {
+                vid.play().catch(e => console.log("Video play blocked by browser, requires user interaction."));
+            });
+            document.getElementById('btn-play').innerText = "Feeds Active";
+            document.getElementById('btn-play').style.background = "#38bdf8";
+            document.getElementById('btn-play').style.color = "#0b1121";
+        });
+
+        document.getElementById('btn-camera').addEventListener('click', () => {
+            autoRotate = !autoRotate;
+            controls.autoRotate = autoRotate;
+            controls.autoRotateSpeed = 2.0;
+            document.getElementById('btn-camera').style.background = autoRotate ? "#38bdf8" : "transparent";
+            document.getElementById('btn-camera').style.color = autoRotate ? "#0b1121" : "#38bdf8";
+        });
+
+        // Animation Loop
+        const clock = new THREE.Clock();
+        let frameCount = 0;
+        let lastTime = performance.now();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+
+            // Animate water normal map
+            waterNormalMap.offset.x = elapsedTime * 0.05;
+            waterNormalMap.offset.y = elapsedTime * 0.05;
+
+            // Animate water vertices for a waving effect
+            const positions = waterGeometry.attributes.position;
+            for(let i=0; i<positions.count; i++) {
+                const x = positions.getX(i);
+                const y = positions.getY(i);
+                // Simple sine wave calculation
+                const z = Math.sin(x * 0.1 + elapsedTime) * 1.5 + Math.cos(y * 0.1 + elapsedTime) * 1.5;
+                positions.setZ(i, z);
+            }
+            positions.needsUpdate = true;
+
+            // Gently float the gallery group
+            galleryGroup.position.y = Math.sin(elapsedTime * 0.5) * 2;
+
+            // Slowly rotate particles
+            particleMesh.rotation.y = elapsedTime * 0.05;
+
+            controls.update();
+            renderer.render(scene, camera);
+
+            // FPS Counter
+            frameCount++;
+            const currentTime = performance.now();
+            if (currentTime - lastTime >= 1000) {
+                document.getElementById('fps').innerText = frameCount;
+                frameCount = 0;
+                lastTime = currentTime;
+            }
+        }
+
+        animate();
+
+        // Handle Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>

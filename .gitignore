@@ -1,0 +1,17 @@
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+.env
+*.log
+dist/
+build/
+.expo/
+.next/
+.vscode/
+# Large model files
+models/flood_model.pkl
+*.pkl
+# Large datasets
+flood_prediction.csv
+test.csv

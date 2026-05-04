@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flood Risk Dashboard | Gwalior</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            background-color: #f4f6f8; 
+            font-family: 'Inter', sans-serif; 
+            color: #333;
+        }
+        .header { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 2rem 0; margin-bottom: 2rem; border-radius: 0 0 1rem 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .card { border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: none; margin-bottom: 20px; background: #fff; }
+        .card-header { background-color: transparent; border-bottom: 1px solid #eee; font-weight: 600; font-size: 1.1rem; }
+        #map { height: 450px; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); }
+        .slider-group { margin-bottom: 10px; }
+        .form-label { font-size: 0.85rem; font-weight: 600; color: #555; display: flex; justify-content: space-between; margin-bottom: 2px;}
+        .form-range { height: 1.2rem; }
+        .result-card { 
+            padding: 2rem; 
+            border-radius: 12px; 
+            text-align: center; 
+            transition: all 0.4s ease; 
+            background: #fff;
+            border: 2px solid #eee;
+        }
+        .severity-Low { background-color: #e6f4ea; border-color: #34a853; color: #137333; }
+        .severity-Moderate { background-color: #fef7e0; border-color: #fbbc04; color: #b06000; }
+        .severity-High { background-color: #fce8e6; border-color: #ea4335; color: #c5221f; }
+        
+        .score-display { font-size: 3rem; font-weight: 700; line-height: 1; margin-bottom: 0.5rem; }
+        .severity-text { font-size: 1.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+        }
+        
+        .btn-check-risk {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5253 100%);
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 50px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            color: white;
+            width: 100%;
+        }
+        .btn-check-risk:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(238, 82, 83, 0.4);
+            color: white;
+        }
+        #loading { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="header text-center">
+    <div class="container">
+        <h1 class="display-5 fw-bold">Flood Risk Intelligence System</h1>
+        <p class="lead mb-0">Advanced Machine Learning Predictive Model for Gwalior Region</p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <!-- Input Form Column -->
+        <div class="col-lg-7">
+            <div class="card p-4">
+                <h5 class="card-title mb-4 border-bottom pb-2">Environmental & Infrastructure Parameters (0-10)</h5>
+                <form id="predictionForm">
+                    <div class="features-grid" id="slidersContainer">
+                        <!-- Sliders will be generated here by JS -->
+                    </div>
+                    <div class="mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-check-risk" id="predictBtn">
+                            <span id="btnText">Analyze Flood Risk</span>
+                            <div class="spinner-border spinner-border-sm" id="loading" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Result & Map Column -->
+        <div class="col-lg-5">
+            <!-- Visual Feedback Card -->
+            <div class="result-card mb-4" id="resultCard">
+                <h5 class="text-muted text-uppercase fw-bold mb-3" style="font-size: 0.9rem;">Risk Assessment</h5>
+                <div class="score-display" id="probabilityDisplay">--%</div>
+                <div class="severity-text" id="severityDisplay">Awaiting Input</div>
+                <p class="mt-2 mb-0" id="resultMessage" style="font-size: 0.9rem;">Adjust parameters and click analyze to calculate the flood risk probability.</p>
+            </div>
+
+            <!-- Leaflet Map -->
+            <div class="card">
+                <div class="card-header">Vulnerability Map - Gwalior</div>
+                <div class="card-body p-0">
+                    <div id="map"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // 1. Initialize Map (Gwalior Coordinates)
+    const map = L.map('map').setView([26.2183, 78.1828], 13);
+    
+    // Add MapTiler tiles for improved map accuracy
+    L.tileLayer('https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key=7QF0bAWRVrjmZH8PTCcZ', {
+        attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>'
+    }).addTo(map);
+
+    // Marker for Gwalior Fort
+    const fortMarker = L.marker([26.2313, 78.1695]).addTo(map)
+        .bindPopup('<b>Gwalior Fort</b><br>Elevation Reference.');
+        
+    let dangerCircle = null;
+
+    // 2. Setup Form Inputs
+    const features = [
+        "MonsoonIntensity", "TopographyDrainage", "RiverManagement",
+        "Deforestation", "Urbanization", "ClimateChange", "DamsQuality",
+        "Siltation", "AgriculturalPractices", "Encroachments",
+        "IneffectiveDisasterPreparedness", "DrainageSystems",
+        "CoastalVulnerability", "Landslides", "Watersheds",
+        "DeterioratingInfrastructure", "PopulationScore", "WetlandLoss",
+        "InadequatePlanning", "PoliticalFactors"
+    ];
+
+    const container = document.getElementById('slidersContainer');
+    features.forEach(feature => {
+        // Add spaces before capital letters for better readability
+        const labelText = feature.replace(/([A-Z])/g, ' $1').trim();
+        
+        const div = document.createElement('div');
+        div.className = 'slider-group';
+        div.innerHTML = `
+            <label for="${feature}" class="form-label">
+                ${labelText} <span id="${feature}Val" class="text-primary">5</span>
+            </label>
+            <input type="range" class="form-range" id="${feature}" name="${feature}" min="0" max="15" value="5" oninput="document.getElementById('${feature}Val').innerText = this.value">
+        `;
+        container.appendChild(div);
+    });
+
+    // 3. Handle Prediction API Call
+    document.getElementById('predictBtn').addEventListener('click', async () => {
+        // UI Feedback
+        const btn = document.getElementById('predictBtn');
+        const loading = document.getElementById('loading');
+        const btnText = document.getElementById('btnText');
+        const resultCard = document.getElementById('resultCard');
+        
+        btnText.style.display = 'none';
+        loading.style.display = 'inline-block';
+        btn.disabled = true;
+
+        // Gather Data
+        const payload = {};
+        features.forEach(f => {
+            payload[f] = parseFloat(document.getElementById(f).value);
+        });
+
+        try {
+            // Call FastAPI Backend
+            const response = await fetch('http://127.0.0.1:8000/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            if (!response.ok) throw new Error("API request failed");
+            
+            const data = await response.json();
+            
+            if(data.error) {
+                alert("Error from server: " + data.error);
+                return;
+            }
+
+            // Update UI with Results
+            const probPercent = (data.probability * 100).toFixed(1);
+            document.getElementById('probabilityDisplay').innerText = `${probPercent}%`;
+            document.getElementById('severityDisplay').innerText = data.severity;
+            
+            // Remove previous classes
+            resultCard.classList.remove('severity-Low', 'severity-Moderate', 'severity-High');
+            resultCard.classList.add(`severity-${data.severity}`);
+            
+            // Map Logic
+            if (dangerCircle) {
+                map.removeLayer(dangerCircle);
+            }
+
+            if (data.severity === "High") {
+                document.getElementById('resultMessage').innerText = "Critical alert! Immediate mitigation protocols should be initiated.";
+                // Draw Red Circle over Gwalior Fort / Low Lying areas
+                dangerCircle = L.circle([26.2313, 78.1695], {
+                    color: 'red',
+                    fillColor: '#f03',
+                    fillOpacity: 0.5,
+                    radius: 1500
+                }).addTo(map).bindPopup('High Flood Risk Zone Alert!');
+                map.flyTo([26.2313, 78.1695], 14, {animate: true, duration: 1});
+            } else if (data.severity === "Moderate") {
+                document.getElementById('resultMessage').innerText = "Elevated risk detected. Monitor weather and river levels closely.";
+                dangerCircle = L.circle([26.2183, 78.1828], {
+                    color: 'orange',
+                    fillColor: 'orange',
+                    fillOpacity: 0.3,
+                    radius: 1000
+                }).addTo(map).bindPopup('Moderate Risk Zone.');
+                map.flyTo([26.2183, 78.1828], 13, {animate: true});
+            } else {
+                document.getElementById('resultMessage').innerText = "Risk levels are within normal bounds. No immediate action required.";
+                map.flyTo([26.2183, 78.1828], 13, {animate: true});
+            }
+
+        } catch (err) {
+            console.error(err);
+            alert("Failed to connect to the prediction API. Ensure FastAPI is running on port 8000.");
+        } finally {
+            // Restore UI
+            btnText.style.display = 'inline-block';
+            loading.style.display = 'none';
+            btn.disabled = false;
+        }
+    });
+</script>
+</body>
+</html>
