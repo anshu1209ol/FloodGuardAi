@@ -98,7 +98,7 @@ export default function EmergencyScreen() {
     setAiResponse('');
     
     try {
-      const apiKey = 'YOUR_API_KEY_HERE';
+      const apiKey = process.env.EXPO_PUBLIC_OPENROUTER_API_KEY;
       const url = 'https://openrouter.ai/api/v1/chat/completions';
       
       const response = await fetch(url, {

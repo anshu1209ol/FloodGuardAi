@@ -29,7 +29,7 @@ const FloatingAIAssistant = () => {
     setLoading(true);
 
     try {
-      const apiKey = 'YOUR_API_KEY_HERE';
+      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
       const url = 'https://openrouter.ai/api/v1/chat/completions';
       
       const response = await fetch(url, {

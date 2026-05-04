@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const OPENWEATHER_API_KEY = 'YOUR_OPENWEATHER_API_KEY_HERE';
+const OPENWEATHER_API_KEY = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
 
 export const getWeatherData = async (lat, lon) => {
   try {
