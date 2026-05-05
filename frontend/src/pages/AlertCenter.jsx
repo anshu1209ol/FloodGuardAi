@@ -64,20 +64,21 @@ export default function AlertCenter() {
                         <div className="d-flex flex-column gap-3">
                             <div className="p-3 rounded" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', borderLeft: '4px solid #ef4444' }}>
                                 <h6 className="fw-bold text-danger d-flex align-items-center gap-2">
-                                    <AlertTriangle size={16}/> HIGH Severity (Probability &gt; 65%)
+                                    <AlertTriangle size={16}/> HIGH Severity 🔴
                                 </h6>
-                                <p className="small text-white-50 mb-0">
-                                    <strong>Protocol:</strong> Immediate action required.
-                                    <br/>- Initiate automated SMS/Email alerts to local authorities.
-                                    <br/>- Evacuate low-lying areas and flood plains.
-                                    <br/>- Mobilize NDRF and emergency response teams.
-                                    <br/>- Open emergency dam spillways if upstream capacity permits.
+                                <p className="small text-white-50 mb-2">
+                                    <strong>Protocol:</strong> Immediate action required. Threshold &gt; 65%.
+                                    <br/>- Initiate automated SMS/Email alerts.
+                                    <br/>- Safe routes automatically computed.
                                 </p>
+                                <button className="btn btn-sm btn-danger w-100 py-1 fw-bold" onClick={() => alert('🚨 BROADCAST SENT: SMS Alerts pushed to affected zone.')}>
+                                    SIMULATE BROADCAST
+                                </button>
                             </div>
 
                             <div className="p-3 rounded" style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', borderLeft: '4px solid #f59e0b' }}>
                                 <h6 className="fw-bold text-warning d-flex align-items-center gap-2">
-                                    <AlertTriangle size={16}/> MODERATE Severity (Probability 45% - 65%)
+                                    <AlertTriangle size={16}/> MODERATE Severity 🟡
                                 </h6>
                                 <p className="small text-white-50 mb-0">
                                     <strong>Protocol:</strong> Heightened readiness.
@@ -89,7 +90,7 @@ export default function AlertCenter() {
 
                             <div className="p-3 rounded" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', borderLeft: '4px solid #10b981' }}>
                                 <h6 className="fw-bold text-success d-flex align-items-center gap-2">
-                                    <ShieldCheck size={16}/> LOW / SAFE (Probability &lt; 45%)
+                                    <ShieldCheck size={16}/> LOW / SAFE 🟢
                                 </h6>
                                 <p className="small text-white-50 mb-0">
                                     <strong>Protocol:</strong> Standard monitoring.

@@ -6,7 +6,8 @@ import ModelIntel from './pages/ModelIntel';
 import AlertCenter from './pages/AlertCenter';
 import Emergency from './pages/Emergency';
 import FloatingAIAssistant from './components/FloatingAIAssistant';
-import { Activity, Database, Brain, Bell, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Activity, Database, Brain, Bell, AlertTriangle, Languages } from 'lucide-react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import 'leaflet/dist/leaflet.css';
@@ -64,10 +65,24 @@ const StartupScreen = ({ onComplete }) => {
 
 // --- Navigation ---
 const Navigation = () => {
+    const { t, i18n } = useTranslation();
     const location = useLocation();
+
+    const changeLanguage = (lng) => {
+        i18n.changeLanguage(lng);
+    };
+
     const getLinkClass = (path) => {
         return `nav-link px-3 py-2 rounded-3 d-flex align-items-center gap-2 transition-all ${location.pathname === path ? 'active-nav-item' : 'text-white-50 hover-nav-item'}`;
     };
+
+    const languages = [
+        { code: 'en', name: 'English' },
+        { code: 'hi', name: 'हिन्दी' },
+        { code: 'bn', name: 'বাংলা' },
+        { code: 'te', name: 'తెలుగు' },
+        { code: 'mr', name: 'मराठी' }
+    ];
 
     return (
         <nav className="navbar navbar-expand-lg glass-nav fixed-top shadow-lg">
@@ -80,11 +95,31 @@ const Navigation = () => {
                     <span className="navbar-toggler-icon" style={{filter: 'invert(1)'}}></span>
                 </button>
                 <div className="collapse navbar-collapse justify-content-end" id="navbarNav">
-                    <ul className="navbar-nav gap-2">
-                        <li className="nav-item"><Link className={getLinkClass('/')} to="/"><Activity size={18}/> Command Center</Link></li>
-                        <li className="nav-item"><Link className={getLinkClass('/model')} to="/model"><Brain size={18}/> Intelligence</Link></li>
-                        <li className="nav-item"><Link className={getLinkClass('/alerts')} to="/alerts"><Bell size={18}/> Alerts & Docs</Link></li>
-                        <li className="nav-item"><Link className={getLinkClass('/emergency')} to="/emergency"><AlertTriangle size={18} className="text-danger"/> Emergency SOS</Link></li>
+                    <ul className="navbar-nav gap-2 align-items-center">
+                        <li className="nav-item"><Link className={getLinkClass('/')} to="/"><Activity size={18}/> {t('command_center')}</Link></li>
+                        <li className="nav-item"><Link className={getLinkClass('/model')} to="/model"><Brain size={18}/> {t('intelligence')}</Link></li>
+                        <li className="nav-item"><Link className={getLinkClass('/alerts')} to="/alerts"><Bell size={18}/> {t('alerts')}</Link></li>
+                        <li className="nav-item"><Link className={getLinkClass('/emergency')} to="/emergency"><AlertTriangle size={18} className="text-danger"/> {t('emergency')}</Link></li>
+                        
+                        {/* Language Selector */}
+                        <li className="nav-item dropdown ms-lg-3">
+                            <button className="nav-link text-white d-flex align-items-center gap-2 dropdown-toggle bg-transparent border-0" type="button" id="langDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <Languages size={18} className="text-accent" />
+                                <span className="d-none d-xl-inline">{languages.find(l => l.code === i18n.language)?.name || 'English'}</span>
+                            </button>
+                            <ul className="dropdown-menu dropdown-menu-end glass-panel border-secondary p-1" aria-labelledby="langDropdown">
+                                {languages.map((lang) => (
+                                    <li key={lang.code}>
+                                        <button 
+                                            className={`dropdown-item text-white rounded-2 mb-1 ${i18n.language === lang.code ? 'bg-accent text-dark fw-bold' : 'hover-nav-item'}`}
+                                            onClick={() => changeLanguage(lang.code)}
+                                        >
+                                            {lang.name}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </li>
                     </ul>
                 </div>
             </div>

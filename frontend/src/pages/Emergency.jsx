@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { AlertTriangle, ShieldAlert, Phone, MapPin, Radar, XCircle } from 'lucide-react';
 
 export default function Emergency() {
+    const { t } = useTranslation();
     const [scanning, setScanning] = useState(false);
     const [alarmActive, setAlarmActive] = useState(false);
     const [scanMessage, setScanMessage] = useState(null);
@@ -133,8 +135,8 @@ export default function Emergency() {
                 <div className="d-flex align-items-center gap-3 mb-4">
                     <ShieldAlert size={40} className={alarmActive ? "text-danger pulse-circle-svg" : "text-accent"} />
                     <div>
-                        <h2 className="fw-bold text-white mb-0">Emergency Toolkit</h2>
-                        <p className="text-white-50 mb-0">Quick access to life-saving resources & regional scans.</p>
+                        <h2 className="fw-bold text-white mb-0">{t('emergency_toolkit')}</h2>
+                        <p className="text-white-50 mb-0">{t('emergency_desc')}</p>
                     </div>
                 </div>
 
@@ -143,8 +145,8 @@ export default function Emergency() {
                     <div className="alert alert-warning d-flex align-items-center gap-3 border-2 border-warning mb-4 shadow-lg" style={{ backgroundColor: '#fef3c7' }}>
                         <ShieldAlert className="text-warning" size={40} />
                         <div className="flex-grow-1">
-                            <h4 className="fw-bold text-warning mb-1">OFFLINE MODE ACTIVE</h4>
-                            <p className="mb-0 text-warning">System is using cached local resources. Live satellite scanning is disabled.</p>
+                            <h4 className="fw-bold text-warning mb-1">{t('offline_active')}</h4>
+                            <p className="mb-0 text-warning">{t('offline_desc')}</p>
                         </div>
                     </div>
                 )}
@@ -154,7 +156,7 @@ export default function Emergency() {
                     <div className="alert alert-danger d-flex align-items-center gap-3 border-2 border-danger mb-4 shadow-lg" style={{ backgroundColor: '#ffe4e6' }}>
                         <AlertTriangle className="text-danger" size={40} />
                         <div className="flex-grow-1">
-                            <h4 className="fw-bold text-danger mb-1">EVACUATION WARNING</h4>
+                            <h4 className="fw-bold text-danger mb-1">{t('evac_warning')}</h4>
                             <p className="mb-0 text-danger" style={{ whiteSpace: 'pre-line' }}>{scanMessage?.text}</p>
                         </div>
                         <button className="btn btn-outline-danger border-0" onClick={() => setAlarmActive(false)}>
@@ -169,8 +171,8 @@ export default function Emergency() {
                              onClick={!scanning && !alarmActive && !offlineMode ? scanRegionalThreat : undefined}
                              style={{ cursor: scanning || alarmActive || offlineMode ? 'not-allowed' : 'pointer', opacity: offlineMode ? 0.6 : 1 }}>
                             <Radar size={48} className={`mb-3 ${scanning ? 'text-secondary' : 'text-info'} ${scanning && 'pulse-circle-svg'}`} />
-                            <h3 className="fw-bold text-white mb-2">{scanning ? 'Scanning Satellite Data...' : 'Scan 50km Area for Floods'}</h3>
-                            <p className="text-white-50 mb-0">{offlineMode ? 'Live scanning unavailable in offline mode.' : 'Pings live atmospheric radar & regional sensors to detect immediate threats.'}</p>
+                            <h3 className="fw-bold text-white mb-2">{scanning ? t('scanning_satellite') : t('scan_area')}</h3>
+                            <p className="text-white-50 mb-0">{offlineMode ? t('offline_desc') : t('emergency_desc')}</p>
                         </div>
                     </div>
                 </div>
@@ -188,8 +190,8 @@ export default function Emergency() {
                         <a href="tel:112" className="text-decoration-none">
                             <div className="glass-panel bg-danger bg-opacity-75 p-4 rounded-4 text-center h-100 hover-lift">
                                 <AlertTriangle size={48} className="text-white mb-3" />
-                                <h3 className="fw-bold text-white mb-1">SOS / National Emergency</h3>
-                                <p className="text-white-50 mb-0">Dial 112</p>
+                                <h3 className="fw-bold text-white mb-1">{t('sos_national')}</h3>
+                                <p className="text-white-50 mb-0">{t('dial_112')}</p>
                             </div>
                         </a>
                     </div>
@@ -199,8 +201,8 @@ export default function Emergency() {
                         <a href="tel:1078" className="text-decoration-none">
                             <div className="glass-panel p-4 rounded-4 text-center h-100 hover-lift">
                                 <ShieldAlert size={40} className="text-accent mb-3" />
-                                <h4 className="fw-bold text-white mb-1">NDRF Help</h4>
-                                <p className="text-white-50 mb-0">Disaster Relief</p>
+                                <h4 className="fw-bold text-white mb-1">{t('ndrf_help')}</h4>
+                                <p className="text-white-50 mb-0">{t('disaster_relief')}</p>
                             </div>
                         </a>
                     </div>
@@ -210,8 +212,8 @@ export default function Emergency() {
                         <a href="tel:108" className="text-decoration-none">
                             <div className="glass-panel p-4 rounded-4 text-center h-100 hover-lift">
                                 <Phone size={40} className="text-danger mb-3" />
-                                <h4 className="fw-bold text-white mb-1">Ambulance</h4>
-                                <p className="text-white-50 mb-0">Medical Emergency</p>
+                                <h4 className="fw-bold text-white mb-1">{t('ambulance')}</h4>
+                                <p className="text-white-50 mb-0">{t('medical_emergency')}</p>
                             </div>
                         </a>
                     </div>
@@ -224,30 +226,30 @@ export default function Emergency() {
                             disabled={loading}
                         >
                             <MapPin size={28} className="text-info" />
-                            <span className="fs-4 fw-bold">{loading ? 'Acquiring GPS...' : 'Share Live Location'}</span>
+                            <span className="fs-4 fw-bold">{loading ? t('acquiring_gps') : t('share_live_location')}</span>
                         </button>
                     </div>
 
                     {/* Nearest Facilities Section */}
                     <div className="col-12 mt-4">
-                        <h3 className="text-white fw-bold mb-3">Nearest Facilities (GPS)</h3>
+                        <h3 className="text-white fw-bold mb-3">{t('nearest_facilities')}</h3>
                         <div className="row g-3">
                             <div className="col-md-4">
                                 <div className="glass-panel p-3 rounded-4 d-flex align-items-center gap-3 hover-lift cursor-pointer border-success border-opacity-25" onClick={() => findNearest('Emergency Shelters')}>
                                     <div className="bg-success bg-opacity-25 p-3 rounded-3"><Radar size={24} className="text-success" /></div>
-                                    <div className="text-white fw-bold">Emergency Shelters</div>
+                                    <div className="text-white fw-bold">{t('emergency_shelters')}</div>
                                 </div>
                             </div>
                             <div className="col-md-4">
                                 <div className="glass-panel p-3 rounded-4 d-flex align-items-center gap-3 hover-lift cursor-pointer border-danger border-opacity-25" onClick={() => findNearest('Hospitals')}>
                                     <div className="bg-danger bg-opacity-25 p-3 rounded-3"><AlertTriangle size={24} className="text-danger" /></div>
-                                    <div className="text-white fw-bold">Nearest Hospitals</div>
+                                    <div className="text-white fw-bold">{t('nearest_hospitals')}</div>
                                 </div>
                             </div>
                             <div className="col-md-4">
                                 <div className="glass-panel p-3 rounded-4 d-flex align-items-center gap-3 hover-lift cursor-pointer border-primary border-opacity-25" onClick={() => findNearest('Police Stations')}>
                                     <div className="bg-primary bg-opacity-25 p-3 rounded-3"><ShieldAlert size={24} className="text-primary" /></div>
-                                    <div className="text-white fw-bold">Police Stations</div>
+                                    <div className="text-white fw-bold">{t('police_stations')}</div>
                                 </div>
                             </div>
                         </div>
@@ -258,7 +260,7 @@ export default function Emergency() {
                             className={`btn ${offlineMode ? 'btn-warning' : 'btn-outline-warning'} w-100 p-3 rounded-4 fw-bold`}
                             onClick={() => setOfflineMode(!offlineMode)}
                         >
-                            {offlineMode ? 'DISABLE OFFLINE DISASTER MODE' : 'ENABLE OFFLINE DISASTER MODE'}
+                            {offlineMode ? t('disable_offline') : t('enable_offline')}
                         </button>
                     </div>
                 </div>

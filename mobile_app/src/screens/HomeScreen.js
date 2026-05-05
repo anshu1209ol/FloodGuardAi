@@ -2,9 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
+import * as Notifications from 'expo-notifications';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ShieldAlert, CloudRain, Thermometer, Wind, Droplets, Activity, MapPin } from 'lucide-react-native';
 import { getWeatherData, calculateFloodRisk } from '../services/api';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 export default function HomeScreen() {
   const [location, setLocation] = useState(null);
@@ -49,6 +58,17 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
+    (async () => {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        console.log('Failed to get push token for push notification!');
+      }
+    })();
     fetchData();
   }, []);
 
@@ -58,8 +78,17 @@ export default function HomeScreen() {
   };
 
   async function schedulePushNotification(riskData) {
-    // In Expo Go, we just log instead of triggering push notifications.
-    console.log(`🚨 FLOOD ${riskData.level}`, riskData.desc);
+    const severity = riskData.level === 'DANGER' ? '🔴 HIGH' : '🟡 MODERATE';
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `FloodGuard Alert: ${severity} RISK`,
+        body: `${riskData.desc} Check the Command Center for safe routes.`,
+        data: { risk: riskData.level },
+        color: riskData.color,
+      },
+      trigger: null,
+    });
+    console.log(`🚨 FLOOD ${riskData.level} Notification Triggered`);
   }
 
   const getAQILabel = (aqi) => {

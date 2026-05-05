@@ -1,5 +1,6 @@
 import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
+import * as Notifications from 'expo-notifications';
 import { getWeatherData, calculateFloodRisk } from './api';
 
 export const BACKGROUND_LOCATION_TASK = 'BACKGROUND_LOCATION_TASK';
@@ -20,10 +21,20 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
         const { weather, aqi } = await getWeatherData(latitude, longitude);
         const risk = calculateFloodRisk(weather, aqi);
 
-        // In a real EAS Development Build, we would trigger a Push Notification here.
-        // For Expo Go, we just log it as notifications are unsupported natively.
         if (risk.level === 'WARNING' || risk.level === 'DANGER') {
-          console.log(`🚨 BACKGROUND ALERT: You have entered a ${risk.level} risk zone. ${risk.desc}`);
+          const severity = risk.level === 'DANGER' ? '🔴 HIGH' : '🟡 MODERATE';
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: `FloodGuard Alert: ${severity} RISK`,
+              body: `${risk.desc} Move to higher ground if necessary.`,
+              data: { risk: risk.level },
+              color: risk.level === 'DANGER' ? '#ef4444' : '#f59e0b',
+              sound: true,
+              priority: Notifications.AndroidNotificationPriority.MAX,
+            },
+            trigger: null, // immediate
+          });
+          console.log(`🚨 BACKGROUND ALERT: Triggered ${severity} notification.`);
         }
       } catch (err) {
         console.error('Error calculating risk in background:', err);

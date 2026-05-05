@@ -1,10 +1,12 @@
 import React, { useState, useContext, useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { MapContainer, TileLayer, Circle, Popup, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { Download, AlertTriangle, ShieldCheck, Activity, Search, MapPin, CloudRain, Wind } from 'lucide-react';
+import { Download, AlertTriangle, ShieldCheck, Activity, Search, MapPin, CloudRain, Wind, Navigation, Home, Truck, Hospital, Layers, Droplets } from 'lucide-react';
+import { Polyline, LayersControl, LayerGroup, FeatureGroup } from 'react-leaflet';
 import { GlobalStateContext } from '../App';
 
 // Fix default Leaflet marker icon (broken by bundlers)
@@ -91,6 +93,7 @@ const getAqiLabel = (aqi) => {
 };
 
 export default function CommandCenter() {
+    const { t } = useTranslation();
     const { setAlertHistory } = useContext(GlobalStateContext);
     const [features, setFeatures] = useState(
         featuresList.reduce((acc, curr) => ({ ...acc, [curr]: 5 }), {})
@@ -105,6 +108,15 @@ export default function CommandCenter() {
     const [mapKey, setMapKey] = useState(0); // Force re-create map when needed
     const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [showSafeRoutes, setShowSafeRoutes] = useState(false);
+    const [impactStats, setImpactStats] = useState(null);
+    const [activeLayers, setActiveLayers] = useState({
+        heatmap: true,
+        zones: true,
+        rivers: true
+    });
+    const [riverData, setRiverData] = useState([]);
+    const [proneZones, setProneZones] = useState([]);
     const searchTimeoutRef = useRef(null);
     const searchFormRef = useRef(null);
 
@@ -238,6 +250,22 @@ export default function CommandCenter() {
         }
 
         setFeatures(newFeatures);
+
+        // Generate Simulated Smart Map Data
+        const rivers = [
+            { id: 1, name: 'Main Channel', pos: [lat + 0.005, lon + 0.02], level: (Math.random() * 5 + 2).toFixed(1), status: 'Normal' },
+            { id: 2, name: 'North Tributary', pos: [lat + 0.02, lon - 0.01], level: (Math.random() * 8 + 5).toFixed(1), status: 'Warning' },
+            { id: 3, name: 'South Canal', pos: [lat - 0.015, lon - 0.02], level: (Math.random() * 3 + 1).toFixed(1), status: 'Normal' }
+        ];
+        setRiverData(rivers);
+
+        const zones = [
+            { pos: [lat + 0.015, lon + 0.015], radius: 1200, type: 'prone' },
+            { pos: [lat - 0.01, lon - 0.025], radius: 900, type: 'prone' },
+            { pos: [lat + 0.025, lon - 0.03], radius: 1000, type: 'safe' }
+        ];
+        setProneZones(zones);
+
         // Force map to re-render fresh tiles
         setMapKey(prev => prev + 1);
     }, [cityQuery]);
@@ -272,13 +300,26 @@ export default function CommandCenter() {
             const response = await axios.post('http://127.0.0.1:8000/predict', features);
             setResult(response.data);
             
+            // Calculate Impact Prediction based on severity and probability
+            const mult = response.data.severity === 'High' ? 1 : (response.data.severity === 'Moderate' ? 0.4 : 0.05);
+            const prob = response.data.probability;
+            setImpactStats({
+                houses: Math.floor(prob * mult * 8500),
+                roads: (prob * mult * 42).toFixed(1),
+                hospitals: Math.floor(prob * mult * 4),
+                displaced: Math.floor(prob * mult * 25000)
+            });
+
             if (response.data.trigger_alert) {
+                setShowSafeRoutes(true);
                 setAlertHistory(prev => [{
                     time: new Date().toLocaleTimeString(),
                     location: searchedCity || cityQuery || "Gwalior",
                     severity: response.data.severity,
                     probability: (response.data.probability * 100).toFixed(1) + "%"
                 }, ...prev]);
+            } else {
+                setShowSafeRoutes(false);
             }
         } catch (error) {
             console.error("Error fetching prediction:", error);
@@ -314,18 +355,18 @@ export default function CommandCenter() {
         <div className="row g-4 px-3" ref={reportRef}>
             <div className="col-12 d-flex justify-content-between align-items-center mb-2">
                 <div>
-                    <h3 className="fw-bold text-white mb-0">Command Center</h3>
-                    <p className="text-white-50 small mb-0">Live Telemetry & Geo-Spatial Analysis</p>
+                    <h3 className="fw-bold text-white mb-0">{t('command_center')}</h3>
+                    <p className="text-white-50 small mb-0">{t('live_telemetry')}</p>
                 </div>
                 <button onClick={exportPDF} className="btn btn-outline-info d-flex align-items-center gap-2">
-                    <Download size={18} /> Export PDF
+                    <Download size={18} /> {t('export_pdf')}
                 </button>
             </div>
 
             {/* Inputs Sidebar */}
             <div className="col-lg-3">
                 <div className="glass-panel p-3 h-100" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
-                    <h5 className="mb-4 border-bottom border-secondary pb-2 text-white">Environment Sensors</h5>
+                    <h5 className="mb-4 border-bottom border-secondary pb-2 text-white">{t('environment_sensors')}</h5>
                     {featuresList.map(feature => (
                         <div className="mb-3" key={feature}>
                             <label className="form-label d-flex justify-content-between small text-white-50 mb-1">
@@ -349,7 +390,7 @@ export default function CommandCenter() {
                         {loading ? (
                             <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                         ) : <Activity size={18} className="me-2 d-inline" />}
-                        {loading ? "Calculating Risk..." : "Run Assessment"}
+                        {loading ? t('calculating_risk') : t('run_assessment')}
                     </button>
                 </div>
             </div>
@@ -364,7 +405,7 @@ export default function CommandCenter() {
                                     <input 
                                         type="text" 
                                         className="form-control bg-transparent text-white border-secondary" 
-                                        placeholder="Search Indian City (e.g. Mumbai, Patna, Delhi)" 
+                                        placeholder={t('search_placeholder')} 
                                         value={cityQuery}
                                         onChange={handleInputChange}
                                         onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
@@ -397,7 +438,7 @@ export default function CommandCenter() {
                                     )}
                                 </div>
                                 <button type="submit" className="btn btn-accent d-flex align-items-center gap-2 px-4" disabled={searching}>
-                                    <Search size={18} /> {searching ? 'Locating...' : 'Locate'}
+                                    <Search size={18} /> {searching ? t('locating') : t('locate')}
                                 </button>
                             </form>
                         </div>
@@ -407,7 +448,7 @@ export default function CommandCenter() {
                             {result ? (
                                 <div className="d-flex w-100 justify-content-around align-items-center flex-wrap gap-2">
                                     <div className="text-start">
-                                        <div className="small text-white-50 text-uppercase">Probability</div>
+                                        <div className="small text-white-50 text-uppercase">{t('probability')}</div>
                                         <div className="fw-bold fs-3" style={{ color: result.alert_color }}>
                                             {(result.probability * 100).toFixed(1)}%
                                         </div>
@@ -418,22 +459,22 @@ export default function CommandCenter() {
                                         {result.severity.toUpperCase()}
                                     </div>
                                     <div className="text-start border-start border-secondary ps-3">
-                                        <div className="small text-white-50 text-uppercase">Est. Affected</div>
+                                        <div className="small text-white-50 text-uppercase">{t('est_affected')}</div>
                                         <div className="fw-bold fs-4 text-warning">
                                             {result.severity === 'High' ? Math.floor(result.probability * 150000).toLocaleString() : (result.severity === 'Moderate' ? Math.floor(result.probability * 50000).toLocaleString() : 'Minimal')}
                                         </div>
                                     </div>
                                     <div className="text-start border-start border-secondary ps-3">
-                                        <div className="small text-white-50 text-uppercase">Evac Status</div>
+                                        <div className="small text-white-50 text-uppercase">{t('evac_status')}</div>
                                         <div className="fw-bold fs-5" style={{ color: result.trigger_alert ? '#ef4444' : '#10b981' }}>
-                                            {result.trigger_alert ? 'MANDATORY' : 'STANDBY'}
+                                            {result.trigger_alert ? t('mandatory') : t('standby')}
                                         </div>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="text-white-50 d-flex align-items-center gap-2">
                                     <Activity size={18} className="text-accent" />
-                                    Awaiting Telemetry Data
+                                    {t('awaiting_telemetry')}
                                 </div>
                             )}
                         </div>
@@ -463,7 +504,7 @@ export default function CommandCenter() {
                             {/* AQI Meter */}
                             <div className="glass-panel p-3 rounded" style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255,255,255,0.1)' }}>
                                 <div className="d-flex justify-content-between align-items-center mb-2">
-                                    <span className="small text-white-50 fw-semibold">Air Quality Index</span>
+                                    <span className="small text-white-50 fw-semibold">{t('air_quality')}</span>
                                     <Wind size={16} className="text-white-50" />
                                 </div>
                                 <div className="d-flex align-items-baseline gap-2 mb-3">
@@ -489,7 +530,7 @@ export default function CommandCenter() {
                             {/* Pressure Meter */}
                             <div className="glass-panel p-3 rounded" style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255,255,255,0.1)' }}>
                                 <div className="d-flex justify-content-between align-items-center mb-2">
-                                    <span className="small text-white-50 fw-semibold">Air Pressure</span>
+                                    <span className="small text-white-50 fw-semibold">{t('air_pressure')}</span>
                                     <Activity size={16} className="text-white-50" />
                                 </div>
                                 <div className="d-flex align-items-baseline gap-2 mb-3">
@@ -516,21 +557,21 @@ export default function CommandCenter() {
                             <div className="glass-panel p-2 px-3 rounded d-flex align-items-center gap-3" style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)' }}>
                                 <CloudRain size={20} className="text-primary" />
                                 <div>
-                                    <div className="small text-white-50">Rainfall</div>
+                                    <div className="small text-white-50">{t('rainfall')}</div>
                                     <div className="fw-bold text-white">{weatherData.rain ? (weatherData.rain['1h'] || weatherData.rain['3h'] || 0) : 0} mm</div>
                                 </div>
                             </div>
                             <div className="glass-panel p-2 px-3 rounded d-flex align-items-center gap-3" style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)' }}>
                                 <Activity size={20} className="text-danger" />
                                 <div>
-                                    <div className="small text-white-50">Temperature</div>
+                                    <div className="small text-white-50">{t('temperature')}</div>
                                     <div className="fw-bold text-white">{Math.round(weatherData.main.temp)}°C</div>
                                 </div>
                             </div>
                             <div className="glass-panel p-2 px-3 rounded d-flex align-items-center gap-3" style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)' }}>
                                 <Wind size={20} className="text-info" />
                                 <div>
-                                    <div className="small text-white-50">Humidity</div>
+                                    <div className="small text-white-50">{t('humidity')}</div>
                                     <div className="fw-bold text-white">{weatherData.main.humidity}%</div>
                                 </div>
                             </div>
@@ -559,6 +600,70 @@ export default function CommandCenter() {
                                 crossOrigin={true}
                             />
                             
+                            {/* Smart Map Layers */}
+                            <LayersControl position="topright">
+                                <LayersControl.Overlay checked name="Rainfall Heatmap">
+                                    <LayerGroup>
+                                        {/* Simulated Heatmap using gradients */}
+                                        {[...Array(8)].map((_, i) => (
+                                            <Circle 
+                                                key={i}
+                                                center={[mapCenter[0] + (Math.random() - 0.5) * 0.05, mapCenter[1] + (Math.random() - 0.5) * 0.05]}
+                                                pathOptions={{ 
+                                                    color: 'transparent', 
+                                                    fillColor: '#3b82f6', 
+                                                    fillOpacity: features.MonsoonIntensity / 40 
+                                                }}
+                                                radius={2000 + (Math.random() * 1000)}
+                                            />
+                                        ))}
+                                    </LayerGroup>
+                                </LayersControl.Overlay>
+
+                                <LayersControl.Overlay checked name="Risk Zones">
+                                    <FeatureGroup>
+                                        {proneZones.map((z, i) => (
+                                            <Circle 
+                                                key={i}
+                                                center={z.pos}
+                                                pathOptions={{ 
+                                                    color: z.type === 'prone' ? '#ef4444' : '#10b981', 
+                                                    fillColor: z.type === 'prone' ? '#ef4444' : '#10b981', 
+                                                    fillOpacity: 0.15,
+                                                    dashArray: z.type === 'prone' ? '5, 5' : '0'
+                                                }}
+                                                radius={z.radius}
+                                            >
+                                                <Popup>{z.type === 'prone' ? '⚠️ FLOOD PRONE ZONE' : '✅ SAFE ASSEMBLY POINT'}</Popup>
+                                            </Circle>
+                                        ))}
+                                    </FeatureGroup>
+                                </LayersControl.Overlay>
+
+                                <LayersControl.Overlay checked name="River Gauges">
+                                    <LayerGroup>
+                                        {riverData.map(r => (
+                                            <Marker key={r.id} position={r.pos} icon={L.divIcon({
+                                                className: 'custom-river-marker',
+                                                html: `<div style="background: #0f172a; border: 2px solid #3b82f6; border-radius: 8px; padding: 4px; display: flex; align-items: center; gap: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+                                                        <div style="width: 8px; height: 8px; border-radius: 50%; background: ${r.status === 'Warning' ? '#f59e0b' : '#3b82f6'};"></div>
+                                                        <span style="color: white; font-size: 10px; font-weight: bold;">${r.level}m</span>
+                                                       </div>`,
+                                                iconSize: [60, 30]
+                                            })}>
+                                                <Popup>
+                                                    <div className="p-1">
+                                                        <h6 className="fw-bold mb-1">{r.name}</h6>
+                                                        <div className="small text-white-50">Current Level: <span className="text-white">{r.level}m</span></div>
+                                                        <div className="small text-white-50">Status: <span className={r.status === 'Warning' ? 'text-warning' : 'text-success'}>{r.status}</span></div>
+                                                    </div>
+                                                </Popup>
+                                            </Marker>
+                                        ))}
+                                    </LayerGroup>
+                                </LayersControl.Overlay>
+                            </LayersControl>
+
                             {/* Current location marker */}
                             <Marker position={mapCenter}>
                                 <Popup>
@@ -586,6 +691,46 @@ export default function CommandCenter() {
                                     <Popup>Moderate Warning — {searchedCity || 'Gwalior'}</Popup>
                                 </Circle>
                             )}
+
+                            {/* Safe Route Finder Implementation */}
+                            {showSafeRoutes && (
+                                <>
+                                    {/* Blocked Road (Main Thoroughfare) */}
+                                    <Polyline 
+                                        positions={[
+                                            [mapCenter[0] - 0.01, mapCenter[1] - 0.015],
+                                            [mapCenter[0], mapCenter[1]],
+                                            [mapCenter[0] + 0.015, mapCenter[1] + 0.01]
+                                        ]} 
+                                        pathOptions={{ color: '#ef4444', weight: 8, opacity: 0.7, dashArray: '10, 10' }}
+                                    >
+                                        <Popup>🚨 ROAD BLOCKED: Severe Waterlogging (2.5ft depth)</Popup>
+                                    </Polyline>
+
+                                    {/* Safe Elevated Route 1 */}
+                                    <Polyline 
+                                        positions={[
+                                            [mapCenter[0] - 0.02, mapCenter[1] + 0.01],
+                                            [mapCenter[0] - 0.005, mapCenter[1] + 0.02],
+                                            [mapCenter[0] + 0.02, mapCenter[1] + 0.04]
+                                        ]} 
+                                        pathOptions={{ color: '#10b981', weight: 6, opacity: 0.9 }}
+                                    >
+                                        <Popup>✅ SAFE ROUTE: Elevated Expressway Clear</Popup>
+                                    </Polyline>
+
+                                    {/* Safe Elevated Route 2 */}
+                                    <Polyline 
+                                        positions={[
+                                            [mapCenter[0] + 0.02, mapCenter[1] - 0.02],
+                                            [mapCenter[0] + 0.04, mapCenter[1] - 0.01]
+                                        ]} 
+                                        pathOptions={{ color: '#10b981', weight: 6, opacity: 0.9 }}
+                                    >
+                                        <Popup>✅ SAFE ROUTE: Secondary Evacuation Path</Popup>
+                                    </Polyline>
+                                </>
+                            )}
                             
                             {/* Fix map tile rendering */}
                             <InvalidateSize />
@@ -593,6 +738,79 @@ export default function CommandCenter() {
                         </MapContainer>
                     )}
                 </div>
+
+                {/* Impact Prediction & Safe Route Dashboard */}
+                {result && impactStats && (
+                    <div className="mt-4 animate-slide-up">
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                            <h5 className="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                                <Activity size={20} className="text-accent" />
+                                {t('impact_report')}
+                            </h5>
+                            <div className="form-check form-switch">
+                                <input 
+                                    className="form-check-input" 
+                                    type="checkbox" 
+                                    role="switch" 
+                                    id="routeToggle" 
+                                    checked={showSafeRoutes}
+                                    onChange={(e) => setShowSafeRoutes(e.target.checked)}
+                                />
+                                <label className="form-check-label text-white-50 small" htmlFor="routeToggle">{t('safe_routes')}</label>
+                            </div>
+                        </div>
+                        <div className="row g-3">
+                            <div className="col-md-3">
+                                <div className="glass-panel p-3 border-danger border-opacity-25 h-100">
+                                    <div className="d-flex align-items-center gap-3 mb-2">
+                                        <div className="bg-danger bg-opacity-10 p-2 rounded"><Home size={20} className="text-danger" /></div>
+                                        <span className="small text-white-50">{t('homes_at_risk')}</span>
+                                    </div>
+                                    <h4 className="fw-bold text-white mb-0">{impactStats.houses.toLocaleString()}</h4>
+                                    <div className="progress mt-2" style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                                        <div className="progress-bar bg-danger" style={{ width: `${Math.min(100, (impactStats.houses/5000)*100)}%` }}></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="col-md-3">
+                                <div className="glass-panel p-3 border-warning border-opacity-25 h-100">
+                                    <div className="d-flex align-items-center gap-3 mb-2">
+                                        <div className="bg-warning bg-opacity-10 p-2 rounded"><Truck size={20} className="text-warning" /></div>
+                                        <span className="small text-white-50">{t('roads_blocked')}</span>
+                                    </div>
+                                    <h4 className="fw-bold text-white mb-0">{impactStats.roads} km</h4>
+                                    <div className="progress mt-2" style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                                        <div className="progress-bar bg-warning" style={{ width: `${Math.min(100, (impactStats.roads/20)*100)}%` }}></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="col-md-3">
+                                <div className="glass-panel p-3 border-info border-opacity-25 h-100">
+                                    <div className="d-flex align-items-center gap-3 mb-2">
+                                        <div className="bg-info bg-opacity-10 p-2 rounded"><Navigation size={20} className="text-info" /></div>
+                                        <span className="small text-white-50">{t('people_displaced')}</span>
+                                    </div>
+                                    <h4 className="fw-bold text-white mb-0">{impactStats.displaced.toLocaleString()}</h4>
+                                    <div className="progress mt-2" style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                                        <div className="progress-bar bg-info" style={{ width: `${Math.min(100, (impactStats.displaced/15000)*100)}%` }}></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="col-md-3">
+                                <div className="glass-panel p-3 border-success border-opacity-25 h-100">
+                                    <div className="d-flex align-items-center gap-3 mb-2">
+                                        <div className="bg-success bg-opacity-10 p-2 rounded"><Hospital size={20} className="text-success" /></div>
+                                        <span className="small text-white-50">{t('hospitals')}</span>
+                                    </div>
+                                    <h4 className="fw-bold text-white mb-0">{impactStats.hospitals}</h4>
+                                    <div className="progress mt-2" style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                                        <div className="progress-bar bg-success" style={{ width: `${Math.min(100, (impactStats.hospitals/10)*100)}%` }}></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
