@@ -99,6 +99,7 @@ const Navigation = () => {
                         <li className="nav-item"><Link className={getLinkClass('/')} to="/"><Activity size={18}/> {t('command_center')}</Link></li>
                         <li className="nav-item"><Link className={getLinkClass('/model')} to="/model"><Brain size={18}/> {t('intelligence')}</Link></li>
                         <li className="nav-item"><Link className={getLinkClass('/alerts')} to="/alerts"><Bell size={18}/> {t('alerts')}</Link></li>
+                        <li className="nav-item"><Link className={getLinkClass('/data')} to="/data"><Database size={18}/> {t('data_analysis_hub')}</Link></li>
                         <li className="nav-item"><Link className={getLinkClass('/emergency')} to="/emergency"><AlertTriangle size={18} className="text-danger"/> {t('emergency')}</Link></li>
                         
                         {/* Language Selector */}
@@ -162,6 +163,7 @@ function App() {
                         <Routes>
                             <Route path="/" element={<CommandCenter />} />
                             <Route path="/model" element={<ModelIntel />} />
+                            <Route path="/data" element={<DataHub />} />
                             <Route path="/alerts" element={<AlertCenter />} />
                             <Route path="/emergency" element={<Emergency />} />
                         </Routes>

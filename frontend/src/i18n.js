@@ -61,8 +61,13 @@ const resources = {
       "emergency_shelters": "Emergency Shelters",
       "nearest_hospitals": "Nearest Hospitals",
       "police_stations": "Police Stations",
-      "enable_offline": "ENABLE OFFLINE DISASTER MODE",
-      "disable_offline": "DISABLE OFFLINE DISASTER MODE"
+      "disable_offline": "DISABLE OFFLINE DISASTER MODE",
+      "ai_assistant_title": "FloodGuard AI Assistant",
+      "ai_greeting": "Hi there! I am the FloodGuard AI Assistant. How can I help you today?",
+      "ai_placeholder": "Ask anything...",
+      "ai_typing": "Typing...",
+      "ai_error": "Sorry, I couldn't process your request at this time.",
+      "ai_network_error": "Network error. Please try again later."
     }
   },
   hi: {
@@ -124,8 +129,13 @@ const resources = {
       "emergency_shelters": "आपातकालीन आश्रय",
       "nearest_hospitals": "निकटतम अस्पताल",
       "police_stations": "पुलिस स्टेशन",
-      "enable_offline": "ऑफलाइन आपदा मोड सक्षम करें",
-      "disable_offline": "ऑफलाइन आपदा मोड अक्षम करें"
+      "disable_offline": "ऑफलाइन आपदा मोड अक्षम करें",
+      "ai_assistant_title": "फ्लडगार्ड एआई सहायक",
+      "ai_greeting": "नमस्ते! मैं फ्लडगार्ड एआई सहायक हूँ। मैं आज आपकी कैसे मदद कर सकता हूँ?",
+      "ai_placeholder": "कुछ भी पूछें...",
+      "ai_typing": "टाइपिंग...",
+      "ai_error": "क्षमा करें, मैं इस समय आपके अनुरोध को संसाधित नहीं कर सका।",
+      "ai_network_error": "नेटवर्क त्रुटि। कृपया बाद में पुनः प्रयास करें।"
     }
   },
   bn: {
@@ -187,8 +197,13 @@ const resources = {
       "emergency_shelters": "জরুরী আশ্রয় কেন্দ্র",
       "nearest_hospitals": "নিকটতম হাসপাতাল",
       "police_stations": "পুলিশ স্টেশন",
-      "enable_offline": "অফলাইন দুর্যোগ মোড সক্ষম করুন",
-      "disable_offline": "অফলাইন দুর্যোগ মোড নিষ্ক্রিয় করুন"
+      "disable_offline": "অফলাইন দুর্যোগ মোড নিষ্ক্রিয় করুন",
+      "ai_assistant_title": "ফ্লাডগার্ড এআই সহকারী",
+      "ai_greeting": "হ্যালো! আমি ফ্লাডগার্ড এআই সহকারী। আমি আজ আপনাকে কীভাবে সাহায্য করতে পারি?",
+      "ai_placeholder": "যেকোনো কিছু জিজ্ঞাসা করুন...",
+      "ai_typing": "টাইপিং...",
+      "ai_error": "দুঃখিত, আমি এই মুহূর্তে আপনার অনুরোধটি প্রক্রিয়া করতে পারিনি।",
+      "ai_network_error": "নেটওয়ার্ক ত্রুটি। দয়া করে পরে আবার চেষ্টা করুন।"
     }
   },
   te: {

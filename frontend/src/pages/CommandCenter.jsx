@@ -444,7 +444,7 @@ export default function CommandCenter() {
                         </div>
                     </div>
                     <div className="col-md-5">
-                        <div className="glass-panel p-3 text-center h-100 d-flex flex-column align-items-center justify-content-center gap-3">
+                        <div className="glass-panel p-3 text-center h-100 d-flex flex-column align-items-center justify-content-center gap-2">
                             {result ? (
                                 <div className="d-flex w-100 justify-content-around align-items-center flex-wrap gap-2">
                                     <div className="text-start">
@@ -472,9 +472,22 @@ export default function CommandCenter() {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="text-white-50 d-flex align-items-center gap-2">
-                                    <Activity size={18} className="text-accent" />
-                                    {t('awaiting_telemetry')}
+                                <div className="d-flex align-items-center gap-4">
+                                    <div className="text-white-50 d-flex align-items-center gap-2">
+                                        <Activity size={18} className="text-accent" />
+                                        {t('awaiting_telemetry')}
+                                    </div>
+                                    <div className="form-check form-switch border-start border-secondary ps-5">
+                                        <input 
+                                            className="form-check-input" 
+                                            type="checkbox" 
+                                            role="switch" 
+                                            id="routeToggleAlways" 
+                                            checked={showSafeRoutes}
+                                            onChange={(e) => setShowSafeRoutes(e.target.checked)}
+                                        />
+                                        <label className="form-check-label text-white-50 small" htmlFor="routeToggleAlways">{t('safe_routes')}</label>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -492,7 +505,7 @@ export default function CommandCenter() {
                             </span>
                         </div>
                         {result?.trigger_alert && (
-                             <span className="badge bg-danger pulse-circle-svg px-3">Evacuation Routes Active</span>
+                             <span className="badge bg-danger pulse-circle-svg px-3">{t('evac_warning')}</span>
                         )}
                     </div>
                 )}
