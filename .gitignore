@@ -9,9 +9,8 @@ build/
 .expo/
 .next/
 .vscode/
-# Large model files
-models/flood_model.pkl
-*.pkl
+# Large model files (root only)
+/models/
 
 # Datasets (Local only)
 flood_prediction.csv
