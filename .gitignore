@@ -12,6 +12,21 @@ build/
 # Large model files
 models/flood_model.pkl
 *.pkl
-# Large datasets
+
+# Datasets (Local only)
 flood_prediction.csv
 test.csv
+rainfall in india 1901-2015.csv
+flood.csv
+district wise rainfall normal.csv
+sample_submission.csv
+
+# Training and Helper Scripts (Local only)
+part1_training.py
+train_model.py
+train_advanced_model.py
+sanity_check.py
+simulate.py
+
+# Jupyter Notebooks (Local only)
+*.ipynb
