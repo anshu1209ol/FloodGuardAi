@@ -51,7 +51,8 @@ const FloatingAIAssistant = () => {
           'X-Title': 'FloodGuard AI'
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.0-flash-001',
+          model: 'google/gemini-2.5-flash',
+          max_tokens: 500,
           messages: [
             { 
               role: 'system', 
