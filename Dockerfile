@@ -1,17 +1,20 @@
 # Use an official Python runtime as a parent image
 FROM python:3.10-slim
 
+# Create a non-root user with UID 1000 (Hugging Face requirement)
+RUN useradd -m -u 1000 user
+USER user
+ENV PATH="/home/user/.local/bin:$PATH"
+
 # Set the working directory in the container
-WORKDIR /app
+WORKDIR /code
 
-# Copy the backend requirements first to leverage Docker cache
-COPY backend/requirements.txt /app/
+# Copy requirements and install dependencies
+COPY --chown=user backend/requirements.txt /code/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the backend directory contents into the container at /app
-COPY backend/ /app/
+# Copy backend folder contents into /code
+COPY --chown=user backend/ /code/
 
 # Expose port 7860 (Hugging Face Spaces requirement)
 EXPOSE 7860
