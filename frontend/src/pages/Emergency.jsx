@@ -82,7 +82,7 @@ export default function Emergency() {
             const lon = position.coords.longitude;
             
             try {
-                const apiKey = import.meta.env.VITE_OPENWEATHER_API_KEY;
+                const apiKey = import.meta.env.VITE_OPENWEATHER_API_KEY || 'a8d86111d4924a1dc142a08c6480396f';
                 const weatherRes = await axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`);
                 const aqiRes = await axios.get(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`);
                 

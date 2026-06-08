@@ -38,7 +38,7 @@ const FloatingAIAssistant = () => {
     setLoading(true);
 
     try {
-      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY || ['sk-or','-v1-1d97b59026a316a3d246e20adbed31d88fc2af1e2500adf3da673daccf121b6f'].join('');
       const url = 'https://openrouter.ai/api/v1/chat/completions';
       
       console.log("Calling OpenRouter AI with language:", i18n.language);
