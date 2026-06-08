@@ -297,7 +297,9 @@ export default function CommandCenter() {
         setLoading(true);
         setApiError(false);
         try {
-            const response = await axios.post('http://127.0.0.1:8000/predict', features);
+            const apiKey = import.meta.env.VITE_API_KEY;
+            const headers = apiKey ? { 'X-API-Key': apiKey } : {};
+            const response = await axios.post('http://127.0.0.1:8000/predict', features, { headers });
             setResult(response.data);
             
             // Calculate Impact Prediction based on severity and probability

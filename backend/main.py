@@ -1,4 +1,5 @@
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, Security, HTTPException, status
+from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import joblib
@@ -18,9 +19,24 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
+API_KEY_NAME = "X-API-Key"
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
+
+def verify_api_key(api_key: str = Security(api_key_header)):
+    # Read API key from environment variable (optional in development, enforced if API_KEY is set)
+    expected_key = os.getenv("API_KEY")
+    if expected_key:
+        if api_key != expected_key:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or missing API Key"
+            )
+    return api_key
+
 # Load model and scaler once on startup
-MODEL_PATH = os.path.join("models", "flood_model.pkl")
-SCALER_PATH = os.path.join("models", "scaler.pkl")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "models", "flood_model.pkl")
+SCALER_PATH = os.path.join(BASE_DIR, "models", "scaler.pkl")
 
 # These will be initialized in the startup event
 model = None
@@ -101,7 +117,11 @@ def calculate_severity(probability: float):
         return "High", "red", True
 
 @app.post("/predict")
-def predict_flood(features: FloodFeatures, background_tasks: BackgroundTasks):
+def predict_flood(
+    features: FloodFeatures, 
+    background_tasks: BackgroundTasks, 
+    api_key: str = Security(verify_api_key)
+):
     global latest_prediction
     if model is None or scaler is None:
         return {"error": "Model or scaler not loaded."}
@@ -147,7 +167,7 @@ def predict_flood(features: FloodFeatures, background_tasks: BackgroundTasks):
         return {"error": str(e)}
 
 @app.get("/latest")
-def get_latest_prediction():
+def get_latest_prediction(api_key: str = Security(verify_api_key)):
     if latest_prediction is None:
         return {"status": "No predictions made yet."}
     return latest_prediction
