@@ -298,7 +298,7 @@ export default function CommandCenter() {
         setApiError(false);
         try {
             const apiKey = import.meta.env.VITE_API_KEY;
-            const baseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+            const baseUrl = import.meta.env.VITE_API_URL || 'https://anshulsikarawar-floodguardai.hf.space';
             const headers = apiKey ? { 'X-API-Key': apiKey } : {};
             const response = await axios.post(`${baseUrl}/predict`, features, { headers });
             setResult(response.data);
